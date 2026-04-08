@@ -333,16 +333,22 @@ function onDrop(e)      { e.preventDefault(); document.getElementById('drop-zone
 function handleFile(file) {
   if (!file) return;
   fileName = file.name;
-  fileMime = file.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'text/plain';
-  document.getElementById('file-chosen').textContent = '📎 ' + file.name;
-  const reader = new FileReader();
-  if (fileMime === 'application/pdf') {
-    reader.onload = () => { fileB64 = reader.result.split(',')[1]; };
-    reader.readAsDataURL(file);
-  } else {
+  const ext = file.name.toLowerCase().split('.').pop();
+  // All binary formats (docx, doc, pdf) must use readAsDataURL
+  // Only plain .txt files can use readAsText
+  if (ext === 'txt') {
+    fileMime = 'text/plain';
+    const reader = new FileReader();
     reader.onload = () => { fileB64 = btoa(unescape(encodeURIComponent(reader.result))); };
     reader.readAsText(file);
+  } else {
+    // PDF, DOCX, DOC — all binary, use readAsDataURL
+    fileMime = ext === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    const reader = new FileReader();
+    reader.onload = () => { fileB64 = reader.result.split(',')[1]; };
+    reader.readAsDataURL(file);
   }
+  document.getElementById('file-chosen').textContent = '📎 ' + file.name;
 }
 
 // ── Submit ────────────────────────────────────────────────────────────────────
