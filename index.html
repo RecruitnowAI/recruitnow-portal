@@ -121,6 +121,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .spinner{width:13px;height:13px;border:2px solid rgba(47,84,150,.2);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle}
 .empty{text-align:center;padding:36px 20px;color:var(--muted)}
 .empty-icon{font-size:32px;margin-bottom:8px}
+  .result-frame{width:100%;height:620px;border:1px solid var(--border);border-radius:10px;background:#fff;margin-top:10px;display:block}
 </style>
 </head>
 <body>
@@ -131,7 +132,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="logo-mark">RN</div>
     <div>
       <div class="logo-text">Recruit Now Singapore</div>
-      <div class="logo-sub">Resume Processing Portal v2</div>
+      <div class="logo-sub">Resume Processing Portal</div>
     </div>
   </div>
   <div class="header-right" id="header-right" style="display:none">
@@ -202,9 +203,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <!-- Result panel -->
     <div class="result-wrap" id="result-wrap" style="display:none">
       <div class="card">
-        <div class="card-title" id="result-title">Candidate profile</div>
-        <div id="result-actions"></div>
-        <iframe class="result-frame" id="result-frame" title="Candidate profile"></iframe>
+        <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+          <span id="result-title">Candidate profile</span>
+          <div id="result-actions"></div>
+        </div>
+        <iframe class="result-frame" id="result-frame" title="Candidate profile" style="display:none"></iframe>
       </div>
     </div>
   </div>
@@ -435,8 +438,7 @@ function selectJob(id) {
   // HTML preview in iframe
   const frame = document.getElementById('result-frame');
   if (job.result_html) {
-    const blob = new Blob([job.result_html], { type: 'text/html' });
-    frame.src = URL.createObjectURL(blob);
+    frame.srcdoc = job.result_html;
     frame.style.display = 'block';
   } else {
     frame.style.display = 'none';
