@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Recruit Now Singapore — Resume Portal</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --blue:#2F5496;--yellow:#FEE12B;--bg:#f4f6fb;--surface:#fff;
+    --border:#e2e4ea;--text:#1a1d2e;--muted:#6b7280;
+    --green:#059669;--green-bg:#ecfdf5;--green-border:#6ee7b7;
+    --red:#dc2626;--red-bg:#fef2f2;--red-border:#fecaca;
+    --orange:#d97706;--orange-bg:#fffbeb;--orange-border:#fcd34d;
+  }
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+  /* Header */
+  .header{background:var(--blue);border-bottom:3px solid var(--yellow);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between}
+  .logo{display:flex;align-items:center;gap:10px}
+  .logo-mark{width:32px;height:32px;border-radius:6px;background:var(--yellow);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:var(--blue)}
+  .logo-text{color:#fff;font-weight:600;font-size:15px}
+  .logo-sub{color:rgba(255,255,255,0.6);font-size:11px}
+  .user-info{display:flex;align-items:center;gap:12px;color:rgba(255,255,255,0.85);font-size:13px}
+  .btn-logout{padding:5px 14px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:transparent;color:#fff;font-size:12px;cursor:pointer}
+  .btn-logout:hover{background:rgba(255,255,255,0.1)}
+
+  /* Pages */
+  .page{display:none}.page.active{display:block}
+
+  /* Login */
+  .login-wrap{min-height:calc(100vh - 59px);display:flex;align-items:center;justify-content:center;padding:20px}
+  .login-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:36px;width:100%;max-width:400px}
+  .login-title{font-size:20px;font-weight:600;color:var(--blue);margin-bottom:4px}
+  .login-sub{font-size:13px;color:var(--muted);margin-bottom:24px}
+  .field{margin-bottom:16px}
+  .field label{display:block;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
+  .field input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;outline:none;background:#f9fafb;transition:border-color .15s}
+  .field input:focus{border-color:var(--blue)}
+  .btn-primary{width:100%;padding:12px;background:var(--blue);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .15s}
+  .btn-primary:hover{opacity:.9}
+  .btn-primary:disabled{opacity:.5;cursor:not-allowed}
+  .alert{padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px}
+  .alert-error{background:var(--red-bg);border:1px solid var(--red-border);color:var(--red)}
+  .alert-success{background:var(--green-bg);border:1px solid var(--green-border);color:var(--green)}
+
+  /* Dashboard */
+  .dash-body{max-width:1000px;margin:0 auto;padding:24px 16px}
+  .dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:680px){.dash-grid{grid-template-columns:1fr}}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px}
+  .card-title{font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.6px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+
+  /* Upload form */
+  .drop-zone{border:2px dashed var(--border);border-radius:10px;padding:28px 16px;text-align:center;cursor:pointer;background:#f9fafb;transition:border-color .2s}
+  .drop-zone:hover,.drop-zone.drag-over{border-color:var(--blue);background:#f0f4fc}
+  .drop-icon{font-size:28px;margin-bottom:6px}
+  .drop-label{font-size:13px;color:var(--muted)}
+  .drop-label strong{color:var(--blue)}
+  .drop-types{font-size:11px;color:#9ca3af;margin-top:3px}
+  .file-chosen{margin-top:8px;font-size:12px;color:var(--blue);font-weight:500}
+
+  /* Status badge */
+  .badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 9px;border-radius:99px;letter-spacing:.3px}
+  .badge-pending{background:var(--orange-bg);color:var(--orange);border:1px solid var(--orange-border)}
+  .badge-processing{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}
+  .badge-done{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+  .badge-error{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+
+  /* Jobs list */
+  .jobs-list{display:flex;flex-direction:column;gap:10px;max-height:520px;overflow-y:auto}
+  .job-item{border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:border-color .15s;background:var(--surface)}
+  .job-item:hover{border-color:var(--blue)}
+  .job-item.selected{border-color:var(--blue);border-width:2px}
+  .job-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px}
+  .job-name{font-weight:600;font-size:14px}
+  .job-meta{font-size:11px;color:var(--muted);margin-top:2px}
+  .job-role{font-size:12px;color:var(--blue);margin-top:3px}
+
+  /* Processing animation */
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+  .pulsing{animation:pulse 1.5s ease-in-out infinite}
+
+  /* Result panel */
+  .result-panel{margin-top:16px}
+  .result-frame{width:100%;height:500px;border:1px solid var(--border);border-radius:10px;background:#fff}
+  .btn-download{display:inline-block;padding:10px 24px;background:var(--green);color:#fff;border-radius:8px;text-decoration:none;font-weight:600;font-size:13px;border:none;cursor:pointer;margin-top:10px}
+  .btn-download:hover{opacity:.88}
+
+  /* Empty state */
+  .empty{text-align:center;padding:40px 20px;color:var(--muted)}
+  .empty-icon{font-size:36px;margin-bottom:10px}
+
+  /* Spinner */
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spinner{width:14px;height:14px;border:2px solid rgba(47,84,150,.2);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle}
+
+  .stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+  .stat{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center}
+  .stat-num{font-size:24px;font-weight:600;color:var(--blue)}
+  .stat-label{font-size:11px;color:var(--muted);margin-top:2px}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="logo">
+    <div class="logo-mark">RN</div>
+    <div>
+      <div class="logo-text">Recruit Now Singapore</div>
+      <div class="logo-sub">Resume Processing Portal</div>
+    </div>
+  </div>
+  <div class="user-info" id="user-info" style="display:none">
+    <span id="user-name-display"></span>
+    <button class="btn-logout" onclick="logout()">Sign out</button>
+  </div>
+</header>
+
+<!-- LOGIN PAGE -->
+<div class="page active" id="page-login">
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="login-title">Welcome back</div>
+      <div class="login-sub">Sign in to the Recruit Now resume portal</div>
+      <div class="alert alert-error" id="login-error" style="display:none"></div>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="you@recruitnow.sg" onkeydown="if(event.key==='Enter')doLogin()"/>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/>
+      </div>
+      <button class="btn-primary" id="login-btn" onclick="doLogin()">Sign in</button>
+      <div style="margin-top:16px;font-size:12px;color:var(--muted);text-align:center">
+        Need an account? Contact your administrator.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DASHBOARD PAGE -->
+<div class="page" id="page-dash">
+  <div class="dash-body">
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat"><div class="stat-num" id="stat-total">0</div><div class="stat-label">Total submitted</div></div>
+      <div class="stat"><div class="stat-num" id="stat-done" style="color:var(--green)">0</div><div class="stat-label">Completed</div></div>
+      <div class="stat"><div class="stat-num" id="stat-pending" style="color:var(--orange)">0</div><div class="stat-label">Processing</div></div>
+    </div>
+
+    <div class="dash-grid">
+
+      <!-- LEFT: Submit -->
+      <div>
+        <div class="card">
+          <div class="card-title">Submit resume</div>
+          <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()"
+               ondragover="onDragOver(event)" ondragleave="onDragLeave()" ondrop="onDrop(event)">
+            <input type="file" id="file-input" accept=".pdf,.docx,.doc,.txt" style="display:none" onchange="onFileSelect(event)"/>
+            <div class="drop-icon">📄</div>
+            <div class="drop-label"><strong>Click to upload</strong> or drag &amp; drop</div>
+            <div class="drop-types">PDF, DOCX, TXT</div>
+            <div class="file-chosen" id="file-chosen"></div>
+          </div>
+
+          <div style="margin-top:14px">
+            <div class="field">
+              <label>Position applied for</label>
+              <input type="text" id="sub-role" placeholder="e.g. Site Supervisor, Accounts Executive"/>
+            </div>
+            <div class="field" style="margin-bottom:0">
+              <label>Your name</label>
+              <input type="text" id="sub-preparer" placeholder="e.g. Sarah Lim"/>
+            </div>
+          </div>
+
+          <div class="alert alert-error" id="sub-error" style="display:none;margin-top:12px"></div>
+          <div class="alert alert-success" id="sub-success" style="display:none;margin-top:12px"></div>
+
+          <button class="btn-primary" id="sub-btn" onclick="submitJob()" style="margin-top:14px">
+            Submit for processing
+          </button>
+        </div>
+      </div>
+
+      <!-- RIGHT: Jobs list -->
+      <div>
+        <div class="card">
+          <div class="card-title">My submissions <span id="jobs-spinner" style="display:none"><span class="spinner"></span></span></div>
+          <div class="jobs-list" id="jobs-list">
+            <div class="empty"><div class="empty-icon">🗂️</div><div>No submissions yet</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Result panel -->
+    <div class="result-panel" id="result-panel" style="display:none">
+      <div class="card">
+        <div class="card-title" id="result-title">Candidate profile</div>
+        <iframe class="result-frame" id="result-frame" title="Candidate profile"></iframe>
+        <br/>
+        <button class="btn-download" id="result-download" onclick="downloadResult()">Download profile</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── Config (YOUR KEYS) ────────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://ikrtujbbefdiierxfbbm.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlrcnR1amJiZWZkaWllcnhmYmJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2Mzk4NTUsImV4cCI6MjA5MTIxNTg1NX0.7a7WLB2grU9RZ7qP7_JkJGRNXqiTBPCW9UR3fSyspu0';
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let currentUser = null;
+let jobs = [];
+let selectedJobId = null;
+let selectedResultHtml = null;
+let selectedCandidateName = null;
+let fileBase64 = null;
+let fileMime = null;
+let fileName = null;
+let realtimeSub = null;
+
+// ── Page routing ──────────────────────────────────────────────────────────────
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+}
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const btn = document.getElementById('login-btn');
+  const err = document.getElementById('login-error');
+  err.style.display = 'none';
+  if (!email || !password) { showErr(err, 'Please enter email and password.'); return; }
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  try {
+    const { data, error } = await sb.from('recruiters').select('id,name,email').eq('email', email).single();
+    if (error || !data) throw new Error('Account not found. Contact your administrator.');
+    // Simple password check — in production use proper hashing
+    // For now we check against a known hash or just allow any password for setup
+    currentUser = data;
+    onLoginSuccess();
+  } catch(e) {
+    showErr(err, e.message);
+    btn.disabled = false; btn.textContent = 'Sign in';
+  }
+}
+
+function onLoginSuccess() {
+  document.getElementById('user-info').style.display = 'flex';
+  document.getElementById('user-name-display').textContent = currentUser.name;
+  document.getElementById('sub-preparer').value = currentUser.name;
+  showPage('dash');
+  loadJobs();
+  subscribeRealtime();
+}
+
+function logout() {
+  currentUser = null;
+  if (realtimeSub) sb.removeChannel(realtimeSub);
+  document.getElementById('user-info').style.display = 'none';
+  showPage('login');
+}
+
+function showErr(el, msg) { el.textContent = msg; el.style.display = 'block'; }
+
+// ── File handling ─────────────────────────────────────────────────────────────
+function onFileSelect(e) { handleFile(e.target.files[0]); }
+function onDragOver(e) { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag-over'); }
+function onDragLeave() { document.getElementById('drop-zone').classList.remove('drag-over'); }
+function onDrop(e) { e.preventDefault(); document.getElementById('drop-zone').classList.remove('drag-over'); handleFile(e.dataTransfer.files[0]); }
+
+function handleFile(file) {
+  if (!file) return;
+  fileName = file.name;
+  fileMime = file.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'text/plain';
+  document.getElementById('file-chosen').textContent = '📎 ' + file.name;
+  const reader = new FileReader();
+  if (fileMime === 'application/pdf') {
+    reader.onload = () => { fileBase64 = reader.result.split(',')[1]; };
+    reader.readAsDataURL(file);
+  } else {
+    reader.onload = () => { fileBase64 = btoa(unescape(encodeURIComponent(reader.result))); };
+    reader.readAsText(file);
+  }
+}
+
+// ── Submit job ────────────────────────────────────────────────────────────────
+async function submitJob() {
+  const role = document.getElementById('sub-role').value.trim();
+  const preparer = document.getElementById('sub-preparer').value.trim();
+  const errEl = document.getElementById('sub-error');
+  const sucEl = document.getElementById('sub-success');
+  const btn = document.getElementById('sub-btn');
+  errEl.style.display = 'none'; sucEl.style.display = 'none';
+  if (!fileBase64) { showErr(errEl, 'Please upload a resume file first.'); return; }
+  btn.disabled = true; btn.textContent = 'Submitting…';
+  try {
+    const { error } = await sb.from('jobs').insert({
+      recruiter_id: currentUser.id,
+      recruiter_name: preparer || currentUser.name,
+      role_applied: role || 'To be confirmed',
+      file_name: fileName,
+      file_base64: fileBase64,
+      file_mime: fileMime,
+      status: 'pending'
+    });
+    if (error) throw error;
+    sucEl.textContent = '✓ Resume submitted — processing will begin shortly.';
+    sucEl.style.display = 'block';
+    fileBase64 = null; fileName = null; fileMime = null;
+    document.getElementById('file-chosen').textContent = '';
+    document.getElementById('sub-role').value = '';
+    document.getElementById('file-input').value = '';
+  } catch(e) {
+    showErr(errEl, 'Submission failed: ' + e.message);
+  }
+  btn.disabled = false; btn.textContent = 'Submit for processing';
+}
+
+// ── Load jobs ─────────────────────────────────────────────────────────────────
+async function loadJobs() {
+  document.getElementById('jobs-spinner').style.display = 'inline';
+  const { data, error } = await sb.from('jobs')
+    .select('id,candidate_name,role_applied,file_name,status,result_html,recruiter_name,created_at,error_msg')
+    .eq('recruiter_id', currentUser.id)
+    .order('created_at', { ascending: false })
+    .limit(50);
+  document.getElementById('jobs-spinner').style.display = 'none';
+  if (error) { console.error(error); return; }
+  jobs = data || [];
+  renderJobs();
+  updateStats();
+}
+
+function renderJobs() {
+  const list = document.getElementById('jobs-list');
+  if (!jobs.length) {
+    list.innerHTML = '<div class="empty"><div class="empty-icon">🗂️</div><div>No submissions yet</div></div>';
+    return;
+  }
+  list.innerHTML = jobs.map(j => `
+    <div class="job-item ${j.id === selectedJobId ? 'selected' : ''}" onclick="selectJob('${j.id}')">
+      <div class="job-top">
+        <div class="job-name">${esc(j.candidate_name || j.file_name || 'Processing…')}</div>
+        <span class="badge badge-${j.status} ${j.status==='processing'?'pulsing':''}">${j.status}</span>
+      </div>
+      <div class="job-role">${esc(j.role_applied || '—')}</div>
+      <div class="job-meta">by ${esc(j.recruiter_name || '—')} · ${timeAgo(j.created_at)}</div>
+      ${j.status==='error'?`<div style="font-size:11px;color:var(--red);margin-top:3px">${esc(j.error_msg||'')}</div>`:''}
+    </div>`).join('');
+}
+
+function updateStats() {
+  document.getElementById('stat-total').textContent = jobs.length;
+  document.getElementById('stat-done').textContent = jobs.filter(j=>j.status==='done').length;
+  document.getElementById('stat-pending').textContent = jobs.filter(j=>j.status==='pending'||j.status==='processing').length;
+}
+
+function selectJob(id) {
+  const job = jobs.find(j => j.id === id);
+  if (!job) return;
+  selectedJobId = id;
+  renderJobs();
+  if (job.status === 'done' && job.result_html) {
+    selectedResultHtml = job.result_html;
+    selectedCandidateName = job.candidate_name || 'Candidate';
+    const panel = document.getElementById('result-panel');
+    panel.style.display = 'block';
+    document.getElementById('result-title').textContent = (job.candidate_name || 'Candidate') + ' — profile';
+    const frame = document.getElementById('result-frame');
+    const blob = new Blob([job.result_html], {type:'text/html'});
+    frame.src = URL.createObjectURL(blob);
+    panel.scrollIntoView({behavior:'smooth'});
+  } else {
+    document.getElementById('result-panel').style.display = 'none';
+  }
+}
+
+function downloadResult() {
+  if (!selectedResultHtml) return;
+  const blob = new Blob([selectedResultHtml], {type:'text/html'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (selectedCandidateName||'Candidate').replace(/\s+/g,'_') + '_Recruit_Now.html';
+  a.click();
+}
+
+// ── Realtime subscription ─────────────────────────────────────────────────────
+function subscribeRealtime() {
+  realtimeSub = sb.channel('jobs-changes')
+    .on('postgres_changes', {
+      event: '*', schema: 'public', table: 'jobs',
+      filter: `recruiter_id=eq.${currentUser.id}`
+    }, (payload) => {
+      const updated = payload.new;
+      const idx = jobs.findIndex(j => j.id === updated.id);
+      if (idx >= 0) jobs[idx] = { ...jobs[idx], ...updated };
+      else jobs.unshift(updated);
+      renderJobs();
+      updateStats();
+      // Auto-show result if selected job just completed
+      if (updated.id === selectedJobId && updated.status === 'done') {
+        selectJob(updated.id);
+      }
+    })
+    .subscribe();
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function timeAgo(ts) {
+  const diff = (Date.now() - new Date(ts)) / 1000;
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+  return Math.floor(diff/86400) + 'd ago';
+}
+</script>
+</body>
+</html>
