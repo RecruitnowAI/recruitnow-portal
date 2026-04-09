@@ -289,10 +289,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="alert alert-error" id="admin-err" style="display:none;margin-bottom:12px"></div>
       <div class="alert alert-success" id="admin-ok" style="display:none;margin-bottom:12px"></div>
       <input class="search-bar" id="user-search" placeholder="Search by name or email…" oninput="filterUsers()"/>
-      <table class="user-table">
+      <div style="overflow-x:auto"><table class="user-table" style="min-width:700px">
         <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Submissions</th><th>Created</th><th>See all candidates</th><th>Actions</th></tr></thead>
         <tbody id="users-tbody"><tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px">Loading…</td></tr></tbody>
-      </table>
+      </table></div>
     </div>
   </div>
 </div>
@@ -612,13 +612,13 @@ function renderUsers(users) {
           See all
         </label>` : '<span style="color:var(--muted)">All access</span>'}
       </td>
-      <td style="white-space:nowrap">
-        ${!isMe ? `
+      <td style="min-width:160px">
+        ${!isMe ? `<div style="display:flex;flex-wrap:wrap;gap:4px">
           <button class="btn-action" onclick="openEditModal('${u.id}','${esc(u.name)}','${esc(u.email)}','${u.role || 'recruiter'}')">Edit</button>
           <button class="btn-action" onclick="openResetModal('${u.id}','${esc(u.name)}')">Reset pw</button>
           <button class="btn-warn" onclick="toggleSuspend('${u.id}','${esc(u.name)}',${isActive})">${isActive ? 'Suspend' : 'Activate'}</button>
           <button class="btn-danger" onclick="deleteUser('${u.id}','${esc(u.name)}')">Remove</button>
-        ` : ''}
+        </div>` : ''}
       </td>
     </tr>`;
   }).join('');
