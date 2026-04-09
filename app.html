@@ -1,12 +1,12 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Recruit Now Singapore — Resume Portal</title>
+<title>Recruit Now Singapore — Portal</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
+
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --blue:#2F5496;--yellow:#FEE12B;--bg:#f4f6fb;--surface:#fff;
@@ -35,12 +35,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .page{display:none}.page.active{display:block}
 
 /* Login */
-.login-wrap{min-height:calc(100vh - 57px);display:flex;align-items:center;justify-content:center;padding:20px}
-.login-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;width:100%;max-width:380px}
-.login-logo{text-align:center;margin-bottom:20px}
-.login-logo-mark{width:44px;height:44px;border-radius:10px;background:var(--blue);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;color:var(--yellow);margin-bottom:8px}
-.login-title{font-size:18px;font-weight:600;color:var(--blue);margin-bottom:2px;text-align:center}
-.login-sub{font-size:12px;color:var(--muted);margin-bottom:22px;text-align:center}
+
+
+
+
+
+
 .field{margin-bottom:14px}
 .field label{display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
 .field input{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:#f9fafb;transition:border-color .15s}
@@ -131,44 +131,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .empty{text-align:center;padding:36px 20px;color:var(--muted)}
 .empty-icon{font-size:32px;margin-bottom:8px}
   .result-frame{width:100%;height:620px;border:1px solid var(--border);border-radius:10px;background:#fff;margin-top:10px;display:block}
+
 </style>
 </head>
 <body>
-
-<!-- Header -->
-<header class="header">
-  <div class="logo">
-    <img src="https://ikrtujbbefdiierxfbbm.supabase.co/storage/v1/object/public/profiles/RN%20LOGO%20TRANSPARENT.png" alt="Recruit Now Singapore" style="height:36px;width:auto;object-fit:contain"/>
-    <div>
-      <div class="logo-sub" style="color:rgba(255,255,255,0.7);font-size:11px">Resume Processing Portal</div>
-    </div>
-  </div>
-  <div class="header-right" id="header-right" style="display:none">
-    <div class="nav-tabs" id="nav-tabs">
-      <button class="nav-tab active" onclick="switchTab('dashboard')">Dashboard</button>
-      <button class="nav-tab" id="tab-admin" onclick="switchTab('admin')" style="display:none">Admin</button>
-    </div>
-    <div class="user-pill" id="user-pill"></div>
-    <button class="btn-sm" onclick="logout()">Sign out</button>
-  </div>
-</header>
-
-<!-- ═══════════════════════════════════════════════ LOGIN -->
-<div class="page active" id="page-login">
-  <div class="login-wrap">
-    <div class="login-card">
-      <div class="login-logo">
-        <img src="https://ikrtujbbefdiierxfbbm.supabase.co/storage/v1/object/public/profiles/RN%20LOGO%20TRANSPARENT.png" alt="Recruit Now Singapore" style="height:80px;width:auto;object-fit:contain;margin-bottom:12px"/>
-        <div class="login-sub">Resume Processing Portal</div>
-      </div>
-      <div class="alert alert-error" id="login-err" style="display:none"></div>
-      <div class="field"><label>Email</label><input type="email" id="login-email" placeholder="you@recruitnow.sg" onkeydown="if(event.key==='Enter')doLogin()"/></div>
-      <div class="field"><label>Password</label><input type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/></div>
-      <button class="btn-primary" id="login-btn" onclick="doLogin()">Sign in</button>
-    </div>
-  </div>
-</div>
-
 <!-- ═══════════════════════════════════════════════ DASHBOARD -->
 <div class="page" id="page-dashboard">
   <div class="dash-body">
@@ -298,32 +264,34 @@ let selectedJobId = null;
 let fileB64 = null, fileMime = null, fileName = null;
 let realtimeSub = null;
 
+// ── Session check — redirect to login if not authenticated ────────────────────
+(function() {
+  const saved = localStorage.getItem('rn_user');
+  if (!saved) { window.location.href = 'login.html'; return; }
+  try {
+    currentUser = JSON.parse(saved);
+  } catch(e) {
+    localStorage.removeItem('rn_user');
+    window.location.href = 'login.html';
+  }
+})();
+
 // ── Simple hash (SHA-256 via Web Crypto) ──────────────────────────────────────
 async function hashPassword(pass) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pass));
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
 }
 
-// ── Auth ──────────────────────────────────────────────────────────────────────
-async function doLogin() {
-  const email = document.getElementById('login-email').value.trim();
-  const pass  = document.getElementById('login-pass').value;
-  const btn   = document.getElementById('login-btn');
-  const err   = document.getElementById('login-err');
-  err.style.display = 'none';
-  if (!email || !pass) { showAlert(err, 'Please enter your email and password.'); return; }
-  btn.disabled = true; btn.textContent = 'Signing in…';
-  try {
-    const hash = await hashPassword(pass);
-    const { data, error } = await sb.from('recruiters').select('id,name,email,role,active').eq('email', email).eq('password_hash', hash).single();
-    if (error || !data) throw new Error('Invalid email or password.');
-    if (data.active === false) throw new Error('Your account has been suspended. Please contact your administrator.');
-    currentUser = data;
-    onLoginSuccess();
-  } catch(e) {
-    showAlert(err, e.message);
-    btn.disabled = false; btn.textContent = 'Sign in';
-  }
+// Auto-init on page load
+window.addEventListener('DOMContentLoaded', () => {
+  if (currentUser) onLoginSuccess();
+});
+
+// ── Auth — session-based ──────────────────────────────────────────────────────
+function logout() {
+  localStorage.removeItem('rn_user');
+  if (realtimeSub) sb.removeChannel(realtimeSub);
+  window.location.href = 'login.html';
 }
 
 function onLoginSuccess() {
@@ -336,13 +304,6 @@ function onLoginSuccess() {
   switchTab('dashboard');
   loadJobs();
   subscribeRealtime();
-}
-
-function logout() {
-  currentUser = null;
-  if (realtimeSub) sb.removeChannel(realtimeSub);
-  document.getElementById('header-right').style.display = 'none';
-  showPage('login');
 }
 
 // ── Tab navigation ────────────────────────────────────────────────────────────
@@ -704,5 +665,6 @@ function timeAgo(ts) {
   return Math.floor(s/86400) + 'd ago';
 }
 </script>
+
 </body>
 </html>
