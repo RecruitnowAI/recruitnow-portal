@@ -135,6 +135,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </style>
 </head>
 <body>
+<!-- Header -->
+<header class="header">
+  <div class="logo">
+    <img src="https://ikrtujbbefdiierxfbbm.supabase.co/storage/v1/object/public/profiles/RN%20LOGO%20TRANSPARENT.png" alt="Recruit Now Singapore" style="height:36px;width:auto;object-fit:contain"/>
+    <div>
+      <div class="logo-sub" style="color:rgba(255,255,255,0.7);font-size:11px">Resume Processing Portal</div>
+    </div>
+  </div>
+  <div class="header-right" id="header-right" style="display:none">
+    <div class="nav-tabs" id="nav-tabs">
+      <button class="nav-tab active" onclick="switchTab('dashboard')">Dashboard</button>
+      <button class="nav-tab" id="tab-admin" onclick="switchTab('admin')" style="display:none">Admin</button>
+    </div>
+    <div class="user-pill" id="user-pill"></div>
+    <button class="btn-sm" onclick="logout()">Sign out</button>
+  </div>
+</header>
+
 <!-- ═══════════════════════════════════════════════ DASHBOARD -->
 <div class="page" id="page-dashboard">
   <div class="dash-body">
