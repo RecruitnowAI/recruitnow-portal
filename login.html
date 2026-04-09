@@ -79,7 +79,7 @@ const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
 // Redirect if already logged in
-const saved = sessionStorage.getItem('rn_user');
+const saved = localStorage.getItem('rn_user');
 if (saved) window.location.href = 'app.html';
 
 async function hashPassword(pass) {
@@ -105,7 +105,7 @@ async function doLogin() {
     if (error || !data) throw new Error('Invalid email or password.');
     if (data.active === false) throw new Error('Your account has been suspended. Please contact your administrator.');
     // Save user to sessionStorage and redirect
-    sessionStorage.setItem('rn_user', JSON.stringify(data));
+    localStorage.setItem('rn_user', JSON.stringify(data));
     window.location.href = 'app.html';
   } catch(e) {
     err.textContent = e.message;
