@@ -97,15 +97,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .btn-download.green{background:var(--green)}
 
 /* Admin */
-.admin-body{max-width:800px;margin:0 auto;padding:20px 16px}
+.admin-body{max-width:960px;margin:0 auto;padding:20px 16px}
+.admin-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.search-bar{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:#f9fafb;margin-bottom:14px;box-sizing:border-box}
+.search-bar:focus{border-color:var(--blue)}
 .user-table{width:100%;border-collapse:collapse;font-size:13px}
 .user-table th{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;padding:8px 12px;border-bottom:1px solid var(--border);text-align:left}
-.user-table td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+.user-table td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
 .user-table tr:last-child td{border-bottom:none}
-.btn-danger{padding:4px 10px;border-radius:6px;border:1px solid var(--red-border);background:var(--red-bg);color:var(--red);font-size:11px;cursor:pointer}
+.user-table tr:hover td{background:var(--bg)}
+.btn-danger{padding:4px 9px;border-radius:6px;border:1px solid var(--red-border);background:var(--red-bg);color:var(--red);font-size:11px;cursor:pointer}
 .btn-danger:hover{background:#fee2e2}
-.btn-action{padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:11px;cursor:pointer}
+.btn-action{padding:4px 9px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:11px;cursor:pointer}
 .btn-action:hover{border-color:var(--blue);color:var(--blue)}
+.btn-warn{padding:4px 9px;border-radius:6px;border:1px solid var(--orange-border);background:var(--orange-bg);color:var(--orange);font-size:11px;cursor:pointer}
+.btn-warn:hover{background:#fef3c7}
+.status-pill{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:2px 8px;border-radius:99px}
+.pill-active{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.pill-suspended{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
 
 /* Modal */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px}
@@ -214,6 +223,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <!-- ═══════════════════════════════════════════════ ADMIN -->
 <div class="page" id="page-admin">
   <div class="admin-body">
+    <!-- Stats -->
+    <div class="admin-stats">
+      <div class="stat"><div class="stat-num" id="a-total">0</div><div class="stat-label">Total recruiters</div></div>
+      <div class="stat"><div class="stat-num" id="a-active" style="color:var(--green)">0</div><div class="stat-label">Active</div></div>
+      <div class="stat"><div class="stat-num" id="a-suspended" style="color:var(--red)">0</div><div class="stat-label">Suspended</div></div>
+    </div>
     <div class="card">
       <div class="card-title">
         <span>Recruiter accounts</span>
@@ -221,22 +236,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
       <div class="alert alert-error" id="admin-err" style="display:none;margin-bottom:12px"></div>
       <div class="alert alert-success" id="admin-ok" style="display:none;margin-bottom:12px"></div>
+      <input class="search-bar" id="user-search" placeholder="Search by name or email…" oninput="filterUsers()"/>
       <table class="user-table">
-        <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Created</th><th>Actions</th></tr></thead>
-        <tbody id="users-tbody"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">Loading…</td></tr></tbody>
+        <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Submissions</th><th>Created</th><th>Actions</th></tr></thead>
+        <tbody id="users-tbody"><tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">Loading…</td></tr></tbody>
       </table>
     </div>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════ CREATE USER MODAL -->
+<!-- ═══════════════════════════════════════════════ CREATE/EDIT USER MODAL -->
 <div class="modal-overlay" id="modal" style="display:none" onclick="if(event.target===this)closeModal()">
   <div class="modal">
-    <div class="modal-title">Add recruiter</div>
+    <div class="modal-title" id="modal-title">Add recruiter</div>
     <div class="alert alert-error" id="modal-err" style="display:none;margin-bottom:12px"></div>
+    <input type="hidden" id="m-id"/>
+    <input type="hidden" id="m-mode" value="create"/>
     <div class="field"><label>Full name</label><input type="text" id="m-name" placeholder="e.g. Sarah Lim"/></div>
     <div class="field"><label>Email</label><input type="email" id="m-email" placeholder="sarah@recruitnow.sg"/></div>
-    <div class="field"><label>Password</label><input type="password" id="m-pass" placeholder="Minimum 6 characters"/></div>
+    <div class="field" id="m-pass-field"><label id="m-pass-label">Password</label><input type="password" id="m-pass" placeholder="Minimum 6 characters"/></div>
     <div class="field" style="margin-bottom:0">
       <label>Role</label>
       <select id="m-role" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:#f9fafb;outline:none">
@@ -246,7 +264,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeModal()">Cancel</button>
-      <button class="btn-create" onclick="createUser()">Create account</button>
+      <button class="btn-create" id="modal-submit" onclick="submitModal()">Create account</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ RESET PASSWORD MODAL -->
+<div class="modal-overlay" id="reset-modal" style="display:none" onclick="if(event.target===this)closeResetModal()">
+  <div class="modal">
+    <div class="modal-title">Reset password</div>
+    <div class="alert alert-error" id="reset-err" style="display:none;margin-bottom:12px"></div>
+    <input type="hidden" id="r-id"/>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:14px">Setting new password for: <strong id="r-name"></strong></div>
+    <div class="field"><label>New password</label><input type="password" id="r-pass" placeholder="Minimum 6 characters"/></div>
+    <div class="field" style="margin-bottom:0"><label>Confirm password</label><input type="password" id="r-pass2" placeholder="Re-enter new password"/></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeResetModal()">Cancel</button>
+      <button class="btn-create" onclick="submitResetPassword()">Reset password</button>
     </div>
   </div>
 </div>
@@ -281,8 +315,9 @@ async function doLogin() {
   btn.disabled = true; btn.textContent = 'Signing in…';
   try {
     const hash = await hashPassword(pass);
-    const { data, error } = await sb.from('recruiters').select('id,name,email,role').eq('email', email).eq('password_hash', hash).single();
+    const { data, error } = await sb.from('recruiters').select('id,name,email,role,active').eq('email', email).eq('password_hash', hash).single();
     if (error || !data) throw new Error('Invalid email or password.');
+    if (data.active === false) throw new Error('Your account has been suspended. Please contact your administrator.');
     currentUser = data;
     onLoginSuccess();
   } catch(e) {
@@ -466,62 +501,197 @@ function subscribeRealtime() {
     .subscribe();
 }
 
+// ── Admin state ──────────────────────────────────────────────────────────────
+let allUsers = [];
+let jobCounts = {};
+
 // ── Admin: load users ─────────────────────────────────────────────────────────
 async function loadUsers() {
   const tbody = document.getElementById('users-tbody');
-  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:16px">Loading…</td></tr>';
-  const { data, error } = await sb.from('recruiters').select('id,name,email,role,created_at').order('created_at', { ascending: true });
-  if (error || !data) { tbody.innerHTML = '<tr><td colspan="5" style="color:var(--red);padding:12px">Failed to load users.</td></tr>'; return; }
-  if (!data.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:16px">No recruiters yet.</td></tr>'; return; }
-  tbody.innerHTML = data.map(u => `
-    <tr>
-      <td style="font-weight:500">${esc(u.name)}</td>
-      <td style="color:var(--muted)">${esc(u.email)}</td>
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:16px"><span class="spinner"></span></td></tr>';
+
+  // Load recruiters and job counts in parallel
+  const [usersRes, jobsRes] = await Promise.all([
+    sb.from('recruiters').select('id,name,email,role,active,created_at').order('created_at', { ascending: true }),
+    sb.from('jobs').select('recruiter_id,status')
+  ]);
+
+  if (usersRes.error || !usersRes.data) {
+    tbody.innerHTML = '<tr><td colspan="7" style="color:var(--red);padding:12px">Failed to load users.</td></tr>';
+    return;
+  }
+
+  allUsers = usersRes.data;
+
+  // Count jobs per recruiter
+  jobCounts = {};
+  (jobsRes.data || []).forEach(j => {
+    if (!jobCounts[j.recruiter_id]) jobCounts[j.recruiter_id] = { total: 0, done: 0 };
+    jobCounts[j.recruiter_id].total++;
+    if (j.status === 'done') jobCounts[j.recruiter_id].done++;
+  });
+
+  updateAdminStats();
+  renderUsers(allUsers);
+}
+
+function updateAdminStats() {
+  document.getElementById('a-total').textContent = allUsers.length;
+  document.getElementById('a-active').textContent = allUsers.filter(u => u.active !== false).length;
+  document.getElementById('a-suspended').textContent = allUsers.filter(u => u.active === false).length;
+}
+
+function renderUsers(users) {
+  const tbody = document.getElementById('users-tbody');
+  if (!users.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:16px">No recruiters found.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = users.map(u => {
+    const isActive = u.active !== false;
+    const counts = jobCounts[u.id] || { total: 0, done: 0 };
+    const isMe = u.id === currentUser.id;
+    return `<tr>
+      <td style="font-weight:500">${esc(u.name)}${isMe ? ' <span style="font-size:10px;color:var(--muted)">(you)</span>' : ''}</td>
+      <td style="color:var(--muted);font-size:12px">${esc(u.email)}</td>
       <td><span class="badge ${u.role === 'admin' ? 'badge-processing' : 'badge-done'}">${u.role || 'recruiter'}</span></td>
+      <td><span class="status-pill ${isActive ? 'pill-active' : 'pill-suspended'}">${isActive ? 'Active' : 'Suspended'}</span></td>
+      <td style="font-size:12px">${counts.done}/${counts.total} <span style="color:var(--muted)">done</span></td>
       <td style="color:var(--muted);font-size:11px">${new Date(u.created_at).toLocaleDateString('en-SG')}</td>
-      <td>
-        ${u.id !== currentUser.id ? `<button class="btn-danger" onclick="deleteUser('${u.id}','${esc(u.name)}')">Remove</button>` : '<span style="font-size:11px;color:var(--muted)">You</span>'}
+      <td style="white-space:nowrap">
+        ${!isMe ? `
+          <button class="btn-action" onclick="openEditModal('${u.id}','${esc(u.name)}','${esc(u.email)}','${u.role || 'recruiter'}')">Edit</button>
+          <button class="btn-action" onclick="openResetModal('${u.id}','${esc(u.name)}')">Reset pw</button>
+          <button class="btn-warn" onclick="toggleSuspend('${u.id}','${esc(u.name)}',${isActive})">${isActive ? 'Suspend' : 'Activate'}</button>
+          <button class="btn-danger" onclick="deleteUser('${u.id}','${esc(u.name)}')">Remove</button>
+        ` : ''}
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
+}
+
+function filterUsers() {
+  const q = document.getElementById('user-search').value.toLowerCase();
+  const filtered = q ? allUsers.filter(u => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)) : allUsers;
+  renderUsers(filtered);
 }
 
 // ── Admin: create user ────────────────────────────────────────────────────────
 function openCreateModal() {
+  document.getElementById('m-id').value = '';
+  document.getElementById('m-mode').value = 'create';
+  document.getElementById('modal-title').textContent = 'Add recruiter';
+  document.getElementById('modal-submit').textContent = 'Create account';
   document.getElementById('m-name').value = '';
   document.getElementById('m-email').value = '';
   document.getElementById('m-pass').value = '';
   document.getElementById('m-role').value = 'recruiter';
+  document.getElementById('m-pass-field').style.display = '';
+  document.getElementById('m-pass-label').textContent = 'Password';
+  document.getElementById('m-email').disabled = false;
   document.getElementById('modal-err').style.display = 'none';
   document.getElementById('modal').style.display = 'flex';
 }
+
+function openEditModal(id, name, email, role) {
+  document.getElementById('m-id').value = id;
+  document.getElementById('m-mode').value = 'edit';
+  document.getElementById('modal-title').textContent = 'Edit recruiter';
+  document.getElementById('modal-submit').textContent = 'Save changes';
+  document.getElementById('m-name').value = name;
+  document.getElementById('m-email').value = email;
+  document.getElementById('m-email').disabled = true;
+  document.getElementById('m-pass').value = '';
+  document.getElementById('m-role').value = role;
+  document.getElementById('m-pass-field').style.display = 'none';
+  document.getElementById('modal-err').style.display = 'none';
+  document.getElementById('modal').style.display = 'flex';
+}
+
 function closeModal() { document.getElementById('modal').style.display = 'none'; }
 
-async function createUser() {
+async function submitModal() {
+  const mode  = document.getElementById('m-mode').value;
+  const id    = document.getElementById('m-id').value;
   const name  = document.getElementById('m-name').value.trim();
   const email = document.getElementById('m-email').value.trim();
   const pass  = document.getElementById('m-pass').value;
   const role  = document.getElementById('m-role').value;
   const err   = document.getElementById('modal-err');
   err.style.display = 'none';
-  if (!name || !email || !pass) { showAlert(err, 'All fields are required.'); return; }
-  if (pass.length < 6) { showAlert(err, 'Password must be at least 6 characters.'); return; }
-  const hash = await hashPassword(pass);
-  const { error } = await sb.from('recruiters').insert({ name, email, password_hash: hash, role });
-  if (error) { showAlert(err, error.message.includes('unique') ? 'This email is already registered.' : error.message); return; }
+
+  if (!name || !email) { showAlert(err, 'Name and email are required.'); return; }
+
+  if (mode === 'create') {
+    if (!pass) { showAlert(err, 'Password is required.'); return; }
+    if (pass.length < 6) { showAlert(err, 'Password must be at least 6 characters.'); return; }
+    const hash = await hashPassword(pass);
+    const { error } = await sb.from('recruiters').insert({ name, email, password_hash: hash, role, active: true });
+    if (error) { showAlert(err, error.message.includes('unique') ? 'This email is already registered.' : error.message); return; }
+    showAdminOk(`✓ Account created for ${name}`);
+  } else {
+    const { error } = await sb.from('recruiters').update({ name, role }).eq('id', id);
+    if (error) { showAlert(err, error.message); return; }
+    showAdminOk(`✓ ${name} updated successfully`);
+  }
   closeModal();
-  const ok = document.getElementById('admin-ok');
-  ok.textContent = `✓ Account created for ${name}`;
-  ok.style.display = 'block';
-  setTimeout(() => ok.style.display = 'none', 4000);
   loadUsers();
 }
 
-async function deleteUser(id, name) {
-  if (!confirm(`Remove ${name} from the system? Their submission history will remain.`)) return;
-  const { error } = await sb.from('recruiters').delete().eq('id', id);
+// ── Admin: reset password ─────────────────────────────────────────────────────
+function openResetModal(id, name) {
+  document.getElementById('r-id').value = id;
+  document.getElementById('r-name').textContent = name;
+  document.getElementById('r-pass').value = '';
+  document.getElementById('r-pass2').value = '';
+  document.getElementById('reset-err').style.display = 'none';
+  document.getElementById('reset-modal').style.display = 'flex';
+}
+function closeResetModal() { document.getElementById('reset-modal').style.display = 'none'; }
+
+async function submitResetPassword() {
+  const id    = document.getElementById('r-id').value;
+  const pass  = document.getElementById('r-pass').value;
+  const pass2 = document.getElementById('r-pass2').value;
+  const err   = document.getElementById('reset-err');
+  err.style.display = 'none';
+  if (!pass || pass.length < 6) { showAlert(err, 'Password must be at least 6 characters.'); return; }
+  if (pass !== pass2) { showAlert(err, 'Passwords do not match.'); return; }
+  const hash = await hashPassword(pass);
+  const { error } = await sb.from('recruiters').update({ password_hash: hash }).eq('id', id);
+  if (error) { showAlert(err, error.message); return; }
+  closeResetModal();
+  showAdminOk('✓ Password reset successfully');
+}
+
+// ── Admin: suspend / activate ─────────────────────────────────────────────────
+async function toggleSuspend(id, name, isActive) {
+  const action = isActive ? 'suspend' : 'activate';
+  if (!confirm(`${action.charAt(0).toUpperCase() + action.slice(1)} ${name}?`)) return;
+  const { error } = await sb.from('recruiters').update({ active: !isActive }).eq('id', id);
   if (error) { showAlert(document.getElementById('admin-err'), error.message); return; }
+  showAdminOk(`✓ ${name} ${action}d`);
   loadUsers();
 }
+
+// ── Admin: delete user ────────────────────────────────────────────────────────
+async function deleteUser(id, name) {
+  if (!confirm(`Permanently remove ${name}? Their submission history will remain.`)) return;
+  const { error } = await sb.from('recruiters').delete().eq('id', id);
+  if (error) { showAlert(document.getElementById('admin-err'), error.message); return; }
+  showAdminOk(`✓ ${name} removed`);
+  loadUsers();
+}
+
+function showAdminOk(msg) {
+  const ok = document.getElementById('admin-ok');
+  ok.textContent = msg;
+  ok.style.display = 'block';
+  setTimeout(() => ok.style.display = 'none', 4000);
+}
+
+// Also update login to check active status
+
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
